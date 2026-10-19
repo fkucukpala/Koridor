@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.koridor.game.Cell
+import com.koridor.game.Difficulty
 import com.koridor.game.Move
 import com.koridor.game.Orientation
 import com.koridor.game.Wall
@@ -56,8 +57,7 @@ class ScreenshotTest {
         shot("01_menu")
 
         onUi {
-            vm.selectBoard(BoardTheme.WALNUT)
-            vm.selectPawn(PawnStyle.CLASSIC)
+            vm.selectForTest(BoardTheme.WALNUT, PawnStyle.CLASSIC)
             vm.startGame(GameConfig(2))
             val h = Orientation.HORIZONTAL
             val v = Orientation.VERTICAL
@@ -104,8 +104,10 @@ class ScreenshotTest {
         onUi { vm.openRules() }
         shot("07_kurallar")
 
+        // Mağaza: önce kilitli hâli, sonra her şey açılmış hâli.
         onUi { vm.openAppearance() }
-        shot("08_gorunum")
+        shot("08_gorunum_kilitli")
+        onUi { vm.unlockAllForTest() }
 
         // Her tahta tasarımı farklı bir piyonla, aynı oyun durumunda.
         val combos = listOf(
@@ -117,8 +119,7 @@ class ScreenshotTest {
         for ((i, combo) in combos.withIndex()) {
             val (theme, pawn) = combo
             onUi {
-                vm.selectBoard(theme)
-                vm.selectPawn(pawn)
+                vm.selectForTest(theme, pawn)
                 vm.setUse3dForTest(true)
                 vm.startGame(GameConfig(2))
                 sampleMoves.forEach(vm::playForTest)
@@ -133,9 +134,20 @@ class ScreenshotTest {
 
         // Varsayılana dön ki uygulama bir sonraki açılışta normal görünsün.
         onUi {
-            vm.selectBoard(BoardTheme.WALNUT)
-            vm.selectPawn(PawnStyle.CLASSIC)
+            vm.selectForTest(BoardTheme.WALNUT, PawnStyle.CLASSIC)
             vm.setUse3dForTest(true)
         }
+
+        // Bilgisayara karşı kazanılan oyunun sonu: puan ödülü penceresi.
+        onUi {
+            vm.startGame(GameConfig(2, mapOf(1 to Difficulty.EASY)))
+            val blue = listOf(Cell(3, 0), Cell(2, 0))
+            for (i in 0 until 8) {
+                vm.playForTest(Move.Step(Cell(4, 7 - i)))
+                if (i < 7) vm.playForTest(Move.Step(blue[i % 2]))
+            }
+        }
+        assertEquals(0, vm.state.winner)
+        shot("17_oyun_sonu_odul")
     }
 }

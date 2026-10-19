@@ -7,6 +7,16 @@ Klasik **Koridor** (Quoridor) akıl oyununun Android sürümü.
 - **3D tahta:** tek parmakla 360° döndürme, iki parmakla yakınlaştırma; istenirse **2D** görünüm
 - Hiçbir oyuncunun yolu tamamen kapatılamaz; geçersiz duvar önizlemesi kırmızı görünür
 - Geri alma, yeniden başlatma
+- 5 tahta ve 4 piyon tasarımı; puanla ya da ödüllü reklam izleyerek açılır
+- Ses efektleri (kod ile üretilir), piyon ve duvar animasyonları
+- Reklamlar (Google AdMob): açılışta App Open, oyun sonunda geçiş reklamı, tasarım açmak için ödüllü reklam
+
+## Reklam kimlikleri
+
+Projede şu an Google'ın **test** reklam kimlikleri var. Yayınlamadan önce AdMob panelinden aldığınız kimliklerle değiştirin:
+
+- Uygulama kimliği: `app/build.gradle.kts` → `manifestPlaceholders["admobAppId"]`
+- Reklam birimleri: `app/src/main/kotlin/com/koridor/app/Ads.kt` → `AdIds`
 
 ## Android Studio ile çalıştırma
 

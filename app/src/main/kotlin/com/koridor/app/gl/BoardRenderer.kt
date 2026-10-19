@@ -12,6 +12,7 @@ import com.koridor.game.Board
 import com.koridor.game.Cell
 import com.koridor.game.Orientation
 import com.koridor.game.Side
+import com.koridor.game.Wall
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.abs
@@ -43,6 +44,10 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     /** Piyonların ekranda görünen (animasyonlu) konumları: x, z çiftleri. */
     private var shown = FloatArray(0)
     private var lastFrame = 0L
+
+    /** Her duvarın tahtada ilk görüldüğü an; yeni duvarlar yukarıdan düşerek yerleşir. */
+    private val wallSince = HashMap<Wall, Long>()
+    private var wallsSeeded = false
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         shader = Shader()
@@ -80,7 +85,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         lastFrame = now
 
         drawBoard(s)
-        drawWalls(s)
+        drawWalls(s, now)
         drawPawns(s, dt, now)
         drawTransparent(s, now)
     }
@@ -112,9 +117,17 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         }
     }
 
-    private fun drawWalls(s: BoardScene) {
+    private fun drawWalls(s: BoardScene, now: Long) {
         val wallColor = s.theme.wall.rgb()
-        for (w in s.state.walls) drawWall(w.x, w.y, w.orientation, wallColor)
+        val walls = s.state.walls
+        wallSince.keys.retainAll(walls.toSet())
+        for (w in walls) {
+            // Görünüm ilk açıldığında zaten var olan duvarlar düşmesin.
+            val since = wallSince.getOrPut(w) { if (wallsSeeded) now else 0L }
+            val t = ((now - since) / WALL_DROP_MS.toFloat()).coerceIn(0f, 1f)
+            drawWall(w.x, w.y, w.orientation, wallColor, lift = dropLift(t))
+        }
+        wallsSeeded = true
 
         // Kalan duvarlar, oyuncunun kenarında dik olarak dizilir.
         val state = s.state
@@ -133,10 +146,20 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         }
     }
 
-    private fun drawWall(x: Int, y: Int, o: Orientation, color: FloatArray, alpha: Float = 1f) {
+    /** Düşme yüksekliği: hızlanarak iner, sonunda küçük bir sekme yapar. */
+    private fun dropLift(t: Float): Float = when {
+        t >= 1f -> 0f
+        t < 0.7f -> 2.2f * (1f - (t / 0.7f) * (t / 0.7f))
+        else -> {
+            val b = (t - 0.7f) / 0.3f
+            0.18f * 4f * b * (1f - b)
+        }
+    }
+
+    private fun drawWall(x: Int, y: Int, o: Orientation, color: FloatArray, alpha: Float = 1f, lift: Float = 0f) {
         val cx = x + 1f - 4.5f
         val cz = y + 1f - 4.5f
-        val cy = TILE_HEIGHT + WALL_HEIGHT / 2f
+        val cy = TILE_HEIGHT + WALL_HEIGHT / 2f + lift
         if (o == Orientation.HORIZONTAL) {
             drawBox(cx, cy, cz, WALL_LEN, WALL_HEIGHT, WALL_THICK, color, alpha)
         } else {
@@ -271,6 +294,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         private const val WALL_THICK = 0.13f
         private const val WALL_LEN = 1.84f
         private const val STORE = 5.95f
+        private const val WALL_DROP_MS = 420L
 
         private val VALID = floatArrayOf(0.30f, 0.95f, 0.45f)
         private val INVALID = floatArrayOf(0.95f, 0.25f, 0.25f)

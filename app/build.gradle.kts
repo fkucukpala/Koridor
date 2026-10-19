@@ -15,6 +15,9 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // AdMob uygulama kimliği. Şu an Google'ın TEST kimliği; yayınlamadan önce kendi kimliğinizle değiştirin.
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
@@ -48,6 +51,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.play.services.ads)
+    implementation(libs.ump)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

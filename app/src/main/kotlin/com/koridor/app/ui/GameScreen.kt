@@ -39,7 +39,7 @@ import com.koridor.app.Players
 import com.koridor.game.Orientation
 
 @Composable
-fun GameScreen(vm: KoridorViewModel) {
+fun GameScreen(vm: KoridorViewModel, afterGame: (() -> Unit) -> Unit = { it() }) {
     val state = vm.state
     val scene = vm.scene
     val count = state.playerCount
@@ -141,9 +141,21 @@ fun GameScreen(vm: KoridorViewModel) {
         AlertDialog(
             onDismissRequest = {},
             title = { Text(if (w in vm.config.computers) "Kaybettin" else "Tebrikler!") },
-            text = { Text("$name kazandı.") },
-            confirmButton = { Button(onClick = vm::restart) { Text("Yeniden Oyna") } },
-            dismissButton = { TextButton(onClick = vm::openMenu) { Text("Menü") } },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("$name kazandı.")
+                    if (vm.lastReward > 0) {
+                        Text(
+                            "+${vm.lastReward} puan · Toplam ${vm.points} puan",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            },
+            // Oyun sonu reklamı, oyuncu bir sonraki adımı seçince gösterilir.
+            confirmButton = { Button(onClick = { afterGame(vm::restart) }) { Text("Yeniden Oyna") } },
+            dismissButton = { TextButton(onClick = { afterGame(vm::openMenu) }) { Text("Menü") } },
         )
     }
 }

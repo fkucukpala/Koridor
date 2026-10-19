@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +42,14 @@ private val difficultyNames = mapOf(
 )
 
 @Composable
-fun MenuScreen(onStart: (GameConfig) -> Unit, onRules: () -> Unit, onAppearance: () -> Unit) {
+fun MenuScreen(
+    points: Int,
+    soundOn: Boolean,
+    onToggleSound: () -> Unit,
+    onStart: (GameConfig) -> Unit,
+    onRules: () -> Unit,
+    onAppearance: () -> Unit,
+) {
     var difficulty by rememberSaveable { mutableStateOf(Difficulty.MEDIUM) }
     var fourWithComputers by rememberSaveable { mutableStateOf(false) }
 
@@ -53,7 +61,12 @@ fun MenuScreen(onStart: (GameConfig) -> Unit, onRules: () -> Unit, onAppearance:
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                PointsBadge(points)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onToggleSound) { Text(if (soundOn) "Ses: Açık" else "Ses: Kapalı") }
+            }
+            Spacer(Modifier.height(8.dp))
             Text("KORİDOR", fontSize = 44.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
             Text(
                 "Yolunu bul, rakibinin yolunu kapat",

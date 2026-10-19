@@ -2,6 +2,7 @@ package com.koridor.app
 
 import android.content.Context
 import androidx.compose.ui.graphics.Color
+import com.koridor.game.KeyValueStore
 
 /**
  * Tahta görünümü: hem 2D hem 3D çizimde kullanılan renkler.
@@ -69,22 +70,13 @@ enum class PawnStyle(val id: String, val title: String) {
     }
 }
 
-/** Seçili tahta ve piyon görünümünü cihazda saklar. */
-class AppearancePrefs(context: Context) {
-    private val prefs = context.getSharedPreferences("appearance", Context.MODE_PRIVATE)
-
-    var board: BoardTheme
-        get() = BoardTheme.forId(prefs.getString(KEY_BOARD, null))
-        set(value) = prefs.edit().putString(KEY_BOARD, value.id).apply()
-
-    var pawn: PawnStyle
-        get() = PawnStyle.forId(prefs.getString(KEY_PAWN, null))
-        set(value) = prefs.edit().putString(KEY_PAWN, value.id).apply()
-
-    private companion object {
-        const val KEY_BOARD = "board"
-        const val KEY_PAWN = "pawn"
-    }
+/** Oyun motorundaki [KeyValueStore]'u SharedPreferences ile karşılar (puan, açılan görünümler, ayarlar). */
+class PrefsStore(context: Context) : KeyValueStore {
+    private val prefs = context.getSharedPreferences("progress", Context.MODE_PRIVATE)
+    override fun getInt(key: String, default: Int) = prefs.getInt(key, default)
+    override fun putInt(key: String, value: Int) = prefs.edit().putInt(key, value).apply()
+    override fun getString(key: String, default: String) = prefs.getString(key, default) ?: default
+    override fun putString(key: String, value: String) = prefs.edit().putString(key, value).apply()
 }
 
 fun Color.rgb() = floatArrayOf(red, green, blue)

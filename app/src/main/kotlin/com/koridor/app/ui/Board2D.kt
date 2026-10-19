@@ -1,12 +1,19 @@
 package com.koridor.app.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -44,6 +51,22 @@ fun Board2D(scene: BoardScene, onTap: (Float, Float) -> Unit, modifier: Modifier
     val pawnPositions: List<State<Offset>> = (0 until state.playerCount).map { p ->
         val c = state.position(p)
         animateOffsetAsState(Offset(c.x.toFloat(), c.y.toFloat()), tween(260), label = "pawn$p")
+    }
+
+    // Yeni duvarlar büyüyerek belirir; ekran ilk açıldığında var olanlar animasyonsuz gelir.
+    val wallAnims = remember { mutableStateMapOf<Wall, Animatable<Float, AnimationVector1D>>() }
+    val seeded = remember { mutableStateOf(false) }
+    LaunchedEffect(state.walls) {
+        val current = state.walls.toSet()
+        wallAnims.keys.retainAll(current)
+        for (w in current) {
+            if (w !in wallAnims) {
+                val anim = Animatable(if (seeded.value) 0f else 1f)
+                wallAnims[w] = anim
+                launch { anim.animateTo(1f, tween(320)) }
+            }
+        }
+        seeded.value = true
     }
 
     Canvas(
@@ -87,7 +110,10 @@ fun Board2D(scene: BoardScene, onTap: (Float, Float) -> Unit, modifier: Modifier
             )
         }
 
-        for (w in state.walls) drawWall(w, theme.wall, pitch, at)
+        for (w in state.walls) {
+            val t = wallAnims[w]?.value ?: 1f
+            drawWall(w, theme.wall.copy(alpha = t), pitch, at, grow = t)
+        }
         scene.preview?.let { drawWall(it, if (scene.previewValid) ValidColor else InvalidColor, pitch, at) }
 
         for (p in 0 until state.playerCount) {
@@ -157,10 +183,10 @@ fun DrawScope.drawPawn(style: PawnStyle, color: Color, center: Offset, radius: F
     }
 }
 
-private fun DrawScope.drawWall(w: Wall, color: Color, pitch: Float, at: (Float, Float) -> Offset) {
+private fun DrawScope.drawWall(w: Wall, color: Color, pitch: Float, at: (Float, Float) -> Offset, grow: Float = 1f) {
     val cx = w.x + 1f
     val cy = w.y + 1f
-    val half = 1f - GAP
+    val half = (1f - GAP) * grow
     val thick = 0.09f
     if (w.orientation == Orientation.HORIZONTAL) {
         drawRoundRect(color, at(cx - half, cy - thick), Size(2 * half * pitch, 2 * thick * pitch), CornerRadius(pitch * 0.06f))

@@ -2,6 +2,15 @@ package com.koridor.app.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.unit.sp
+import com.koridor.game.Catalog
+import com.koridor.game.ItemKind
+import com.koridor.game.ShopItem
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,8 +63,10 @@ private fun sampleState(): GameState = listOf(
 ).fold(GameState.newGame(2)) { s, m -> s.apply(m) }
 
 @Composable
-fun AppearanceScreen(vm: KoridorViewModel) {
+fun AppearanceScreen(vm: KoridorViewModel, adReady: Boolean, onWatchAd: (ShopItem) -> Unit) {
     val sample = remember { sampleState() }
+    // Satın alma / reklam sonrası kartlar yeniden okunsun.
+    @Suppress("UNUSED_VARIABLE") val version = vm.shopVersion
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -69,52 +80,61 @@ fun AppearanceScreen(vm: KoridorViewModel) {
                 Spacer(Modifier.weight(1f))
                 Text("Görünüm", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
-                Spacer(Modifier.width(72.dp))
+                PointsBadge(vm.points)
             }
+            Text(
+                "Oyun kazandıkça puan toplarsın. Kilitli görünümleri puanla ya da reklam izleyerek açabilirsin.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             SectionTitle("Tahta")
-            for (row in BoardTheme.all.chunked(2)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 12.dp)) {
-                    for (theme in row) {
-                        OptionCard(
-                            title = theme.name,
-                            selected = theme == vm.boardTheme,
-                            onClick = { vm.selectBoard(theme) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Board2D(
-                                BoardScene(sample, emptyList(), null, false, theme, vm.pawnStyle),
-                                onTap = { _, _ -> vm.selectBoard(theme) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
-                }
+            ItemGrid(Catalog.ofKind(ItemKind.BOARD), vm, adReady, onWatchAd) { item ->
+                val theme = BoardTheme.forId(item.id)
+                Board2D(
+                    BoardScene(sample, emptyList(), null, false, theme, vm.pawnStyle),
+                    onTap = { _, _ -> },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             SectionTitle("Piyon")
-            for (row in PawnStyle.entries.chunked(2)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 12.dp)) {
-                    for (style in row) {
-                        OptionCard(
-                            title = style.title,
-                            selected = style == vm.pawnStyle,
-                            onClick = { vm.selectPawn(style) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            PawnPreview(style, vm.boardTheme)
-                        }
-                    }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
-                }
+            ItemGrid(Catalog.ofKind(ItemKind.PAWN), vm, adReady, onWatchAd) { item ->
+                PawnPreview(PawnStyle.forId(item.id), vm.boardTheme)
             }
-            Text(
-                "Seçimin hem 2D hem 3D tahtada kullanılır ve kaydedilir.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
+        }
+    }
+}
+
+@Composable
+fun PointsBadge(points: Int) {
+    Row(
+        Modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(10.dp).background(Color(0xFFF2C14E), RoundedCornerShape(50)))
+        Spacer(Modifier.width(6.dp))
+        Text("$points puan", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun ItemGrid(
+    items: List<ShopItem>,
+    vm: KoridorViewModel,
+    adReady: Boolean,
+    onWatchAd: (ShopItem) -> Unit,
+    preview: @Composable (ShopItem) -> Unit,
+) {
+    for (row in items.chunked(2)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 12.dp)) {
+            for (item in row) {
+                ItemCard(item, vm, adReady, onWatchAd, Modifier.weight(1f)) { preview(item) }
+            }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -125,35 +145,70 @@ private fun SectionTitle(text: String) {
         text,
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
+        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
     )
 }
 
 @Composable
-private fun OptionCard(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
+private fun ItemCard(
+    item: ShopItem,
+    vm: KoridorViewModel,
+    adReady: Boolean,
+    onWatchAd: (ShopItem) -> Unit,
     modifier: Modifier,
     preview: @Composable () -> Unit,
 ) {
+    val unlocked = vm.isUnlocked(item)
+    val selected = vm.isSelected(item)
     val shape = RoundedCornerShape(14.dp)
     Card(
         modifier = modifier
             .border(3.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
-            .clickable(onClick = onClick),
+            .clickable(enabled = unlocked) { vm.select(item) },
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            preview()
+            Box(contentAlignment = Alignment.Center) {
+                preview()
+                if (!unlocked) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("🔒", fontSize = 28.sp)
+                    }
+                }
+            }
             Spacer(Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(
-                if (selected) "Seçili" else "Seçmek için dokun",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            when {
+                selected -> Text("Seçili", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                unlocked -> Text("Seçmek için dokun", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else -> {
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        onClick = { vm.buy(item) },
+                        enabled = vm.canAfford(item),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.fillMaxWidth().height(34.dp),
+                    ) { Text("${item.price} puanla aç", style = MaterialTheme.typography.labelMedium) }
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { onWatchAd(item) },
+                        enabled = adReady,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.fillMaxWidth().height(34.dp),
+                    ) {
+                        Text(
+                            "Reklam izle ${vm.adsWatched(item)}/${item.adsRequired}",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
         }
     }
 }
