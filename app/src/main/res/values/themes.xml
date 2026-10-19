@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Koridor" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+    </style>
+    <color name="background">#FF1B1410</color>
+    <color name="icon_background">#FF3B2414</color>
+</resources>

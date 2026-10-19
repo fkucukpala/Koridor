@@ -1,0 +1,80 @@
+name: Android
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Oyun motoru testleri ve derleme
+        run: ./gradlew --no-daemon :game:test :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: koridor-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: KVM'yi etkinleştir
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Emülatörde ekran görüntüsü testi
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w com.koridor.app.test/androidx.test.runner.AndroidJUnitRunner > instrument.txt 2>&1 || true
+            mkdir -p screenshots
+            adb pull /sdcard/Android/data/com.koridor.app/files/screenshots/. screenshots/ || true
+            adb logcat -d > screenshots/logcat.txt || true
+            cp instrument.txt screenshots/instrument.txt
+
+      - name: Test sonucunu kontrol et
+        run: |
+          cat instrument.txt
+          grep -q "^OK (" instrument.txt
+
+      - name: Ekran görüntülerini yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/
+          if-no-files-found: ignore
+
+      - name: Ekran görüntülerini ci-screenshots dalına gönder
+        if: always() && github.event_name == 'push'
+        run: |
+          [ -d screenshots ] || exit 0
+          cd screenshots
+          git init -q
+          git checkout -q -b ci-screenshots
+          git add .
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "Ekran görüntüleri: ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" ci-screenshots
