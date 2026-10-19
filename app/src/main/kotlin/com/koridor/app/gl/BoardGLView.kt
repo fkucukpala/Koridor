@@ -2,7 +2,6 @@ package com.koridor.app.gl
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.opengl.GLSurfaceView
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -16,7 +15,7 @@ import com.koridor.app.BoardScene
 class BoardGLView(
     context: Context,
     private val camera: OrbitCamera,
-) : GLSurfaceView(context) {
+) : GLTextureView(context) {
 
     private val renderer = BoardRenderer(camera)
 
@@ -48,11 +47,7 @@ class BoardGLView(
     })
 
     init {
-        setEGLContextClientVersion(2)
-        setEGLConfigChooser(8, 8, 8, 8, 16, 0)
-        preserveEGLContextOnPause = true
         setRenderer(renderer)
-        renderMode = RENDERMODE_CONTINUOUSLY
     }
 
     fun setScene(scene: BoardScene) {

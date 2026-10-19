@@ -103,7 +103,7 @@ class OrbitCamera {
         const val HALF = 4.5f
         const val DEFAULT_YAW = 0f
         const val DEFAULT_PITCH = 58f
-        const val DEFAULT_DISTANCE = 17f
+        const val DEFAULT_DISTANCE = 15f
         const val MIN_PITCH = 12f
         const val MAX_PITCH = 89.5f
         const val MIN_DISTANCE = 7f
