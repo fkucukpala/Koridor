@@ -1,0 +1,8 @@
+
+com.koridor.app.ScreenshotTest:.
+
+Time: 43.898
+
+OK (1 test)
+
+
