@@ -37,13 +37,13 @@ data class BoardTheme(
         val MARBLE = BoardTheme(
             "board_marble", "Mermer",
             background = Color(0xFF16181C), base = Color(0xFF2E3138),
-            tile = Color(0xFFE4E1DA), tileAlt = Color(0xFFB9B5AD), wall = Color(0xFFB08D57),
+            tile = Color(0xFFE4E1DA), tileAlt = Color(0xFFB9B5AD), wall = Color(0xFF263042),
             checker = true,
         )
         val ICE = BoardTheme(
             "board_ice", "Buz",
             background = Color(0xFF0B1621), base = Color(0xFF2B4E6E),
-            tile = Color(0xFFC6E7F7), tileAlt = Color(0xFFA9D6EE), wall = Color(0xFF2F6FB0),
+            tile = Color(0xFFC6E7F7), tileAlt = Color(0xFFA9D6EE), wall = Color(0xFF1C4C86),
             checker = true,
         )
         val NEON = BoardTheme(

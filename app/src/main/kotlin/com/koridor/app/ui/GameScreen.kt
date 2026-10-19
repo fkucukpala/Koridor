@@ -44,7 +44,11 @@ fun GameScreen(vm: KoridorViewModel) {
     val scene = vm.scene
     val count = state.playerCount
 
-    Surface(color = vm.boardTheme.background, modifier = Modifier.fillMaxSize()) {
+    Surface(
+        color = vm.boardTheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.fillMaxSize(),
+    ) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = vm::openMenu) { Text("← Menü") }
