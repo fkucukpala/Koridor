@@ -41,7 +41,7 @@ private val difficultyNames = mapOf(
 )
 
 @Composable
-fun MenuScreen(onStart: (GameConfig) -> Unit, onRules: () -> Unit) {
+fun MenuScreen(onStart: (GameConfig) -> Unit, onRules: () -> Unit, onAppearance: () -> Unit) {
     var difficulty by rememberSaveable { mutableStateOf(Difficulty.MEDIUM) }
     var fourWithComputers by rememberSaveable { mutableStateOf(false) }
 
@@ -97,7 +97,10 @@ fun MenuScreen(onStart: (GameConfig) -> Unit, onRules: () -> Unit) {
                 ) { Text("Başla") }
             }
             Spacer(Modifier.height(24.dp))
-            OutlinedButton(onClick = onRules) { Text("Nasıl Oynanır?") }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(onClick = onAppearance) { Text("Görünüm") }
+                OutlinedButton(onClick = onRules) { Text("Nasıl Oynanır?") }
+            }
         }
     }
 }

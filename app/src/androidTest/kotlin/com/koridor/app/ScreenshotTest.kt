@@ -40,11 +40,24 @@ class ScreenshotTest {
         rule.waitForIdle()
     }
 
+    private val sampleMoves = listOf(
+        Move.Step(Cell(4, 7)),
+        Move.PlaceWall(Wall(3, 5, Orientation.HORIZONTAL)),
+        Move.PlaceWall(Wall(4, 1, Orientation.VERTICAL)),
+        Move.Step(Cell(4, 1)),
+        Move.Step(Cell(5, 7)),
+        Move.PlaceWall(Wall(5, 6, Orientation.HORIZONTAL)),
+        Move.PlaceWall(Wall(1, 2, Orientation.VERTICAL)),
+        Move.Step(Cell(4, 2)),
+    )
+
     @Test
     fun captureScreens() {
         shot("01_menu")
 
         onUi {
+            vm.selectBoard(BoardTheme.WALNUT)
+            vm.selectPawn(PawnStyle.CLASSIC)
             vm.startGame(GameConfig(2))
             val h = Orientation.HORIZONTAL
             val v = Orientation.VERTICAL
@@ -90,5 +103,39 @@ class ScreenshotTest {
 
         onUi { vm.openRules() }
         shot("07_kurallar")
+
+        onUi { vm.openAppearance() }
+        shot("08_gorunum")
+
+        // Her tahta tasarımı farklı bir piyonla, aynı oyun durumunda.
+        val combos = listOf(
+            BoardTheme.GRASS to PawnStyle.CHECKER,
+            BoardTheme.MARBLE to PawnStyle.ROOK,
+            BoardTheme.ICE to PawnStyle.CRYSTAL,
+            BoardTheme.NEON to PawnStyle.CLASSIC,
+        )
+        for ((i, combo) in combos.withIndex()) {
+            val (theme, pawn) = combo
+            onUi {
+                vm.selectBoard(theme)
+                vm.selectPawn(pawn)
+                vm.setUse3dForTest(true)
+                vm.startGame(GameConfig(2))
+                sampleMoves.forEach(vm::playForTest)
+                vm.camera.yaw = 25f
+                vm.camera.pitch = 42f
+                vm.camera.distance = 13f
+            }
+            shot("%02d_%s_3d".format(9 + i * 2, theme.id.removePrefix("board_")))
+            onUi { vm.setUse3dForTest(false) }
+            shot("%02d_%s_2d".format(10 + i * 2, theme.id.removePrefix("board_")))
+        }
+
+        // Varsayılana dön ki uygulama bir sonraki açılışta normal görünsün.
+        onUi {
+            vm.selectBoard(BoardTheme.WALNUT)
+            vm.selectPawn(PawnStyle.CLASSIC)
+            vm.setUse3dForTest(true)
+        }
     }
 }

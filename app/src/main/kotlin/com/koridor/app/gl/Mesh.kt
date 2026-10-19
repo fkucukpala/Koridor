@@ -91,6 +91,34 @@ class Mesh(vertices: FloatArray, indices: ShortArray) {
             return Mesh(v.toFloatArray(), idx.toShortArray())
         }
 
+        /** Köşeleri eksenler üzerinde (±1) olan, düz yüzlü sekiz yüzlü (kristal). */
+        fun octahedron(): Mesh {
+            val v = ArrayList<Float>()
+            val idx = ArrayList<Short>()
+            val top = floatArrayOf(0f, 1f, 0f)
+            val bottom = floatArrayOf(0f, -1f, 0f)
+            val ring = listOf(
+                floatArrayOf(1f, 0f, 0f), floatArrayOf(0f, 0f, 1f),
+                floatArrayOf(-1f, 0f, 0f), floatArrayOf(0f, 0f, -1f),
+            )
+            for (i in 0 until 4) {
+                val a = ring[i]
+                val b = ring[(i + 1) % 4]
+                for (tip in listOf(top, bottom)) {
+                    val tri = if (tip === top) listOf(a, tip, b) else listOf(a, b, tip)
+                    // Yüz normali: üç köşenin ortalaması (bu şekil için yüze diktir).
+                    val n = FloatArray(3) { k -> (tri[0][k] + tri[1][k] + tri[2][k]) / 3f }
+                    val len = kotlin.math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2])
+                    val base = (v.size / 6).toShort()
+                    for (p in tri) {
+                        v += listOf(p[0], p[1], p[2], n[0] / len, n[1] / len, n[2] / len)
+                    }
+                    idx += listOf(base, (base + 1).toShort(), (base + 2).toShort())
+                }
+            }
+            return Mesh(v.toFloatArray(), idx.toShortArray())
+        }
+
         /** Yarıçapı 1 küre. */
         fun sphere(stacks: Int = 16, slices: Int = 32): Mesh {
             val v = ArrayList<Float>()

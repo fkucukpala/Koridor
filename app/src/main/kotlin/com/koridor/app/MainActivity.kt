@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import com.koridor.app.ui.AppearanceScreen
 import com.koridor.app.ui.GameScreen
 import com.koridor.app.ui.KoridorTheme
 import com.koridor.app.ui.MenuScreen
@@ -22,10 +23,15 @@ class MainActivity : ComponentActivity() {
                     Screen.MENU -> MenuScreen(
                         onStart = viewModel::startGame,
                         onRules = viewModel::openRules,
+                        onAppearance = viewModel::openAppearance,
                     )
                     Screen.RULES -> {
                         BackHandler { viewModel.openMenu() }
                         RulesScreen(onBack = viewModel::openMenu)
+                    }
+                    Screen.APPEARANCE -> {
+                        BackHandler { viewModel.openMenu() }
+                        AppearanceScreen(viewModel)
                     }
                     Screen.GAME -> {
                         BackHandler { viewModel.openMenu() }

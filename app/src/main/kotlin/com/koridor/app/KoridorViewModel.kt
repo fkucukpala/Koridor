@@ -1,9 +1,10 @@
 package com.koridor.app
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.koridor.app.gl.OrbitCamera
 import com.koridor.game.Ai
@@ -22,7 +23,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-enum class Screen { MENU, GAME, RULES }
+enum class Screen { MENU, GAME, RULES, APPEARANCE }
 
 enum class InputMode { MOVE, WALL }
 
@@ -35,9 +36,29 @@ data class BoardScene(
     val highlights: List<Cell>,
     val preview: Wall?,
     val previewValid: Boolean,
+    val theme: BoardTheme = BoardTheme.WALNUT,
+    val pawnStyle: PawnStyle = PawnStyle.CLASSIC,
 )
 
-class KoridorViewModel : ViewModel() {
+class KoridorViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val prefs = AppearancePrefs(app)
+
+    var boardTheme by mutableStateOf(prefs.board)
+        private set
+
+    var pawnStyle by mutableStateOf(prefs.pawn)
+        private set
+
+    fun selectBoard(theme: BoardTheme) {
+        boardTheme = theme
+        prefs.board = theme
+    }
+
+    fun selectPawn(style: PawnStyle) {
+        pawnStyle = style
+        prefs.pawn = style
+    }
 
     var screen by mutableStateOf(Screen.MENU)
         private set
@@ -80,6 +101,8 @@ class KoridorViewModel : ViewModel() {
                 highlights = if (isHumanTurn && mode == InputMode.MOVE) state.legalSteps() else emptyList(),
                 preview = if (isHumanTurn && mode == InputMode.WALL) p else null,
                 previewValid = p != null && state.canPlaceWall(p),
+                theme = boardTheme,
+                pawnStyle = pawnStyle,
             )
         }
 
@@ -91,6 +114,10 @@ class KoridorViewModel : ViewModel() {
 
     fun openRules() {
         screen = Screen.RULES
+    }
+
+    fun openAppearance() {
+        screen = Screen.APPEARANCE
     }
 
     fun startGame(newConfig: GameConfig) {

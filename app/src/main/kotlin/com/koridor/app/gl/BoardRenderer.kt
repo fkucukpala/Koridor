@@ -5,7 +5,9 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.os.SystemClock
 import com.koridor.app.BoardScene
+import com.koridor.app.PawnStyle
 import com.koridor.app.Players
+import com.koridor.app.rgb
 import com.koridor.game.Board
 import com.koridor.game.Cell
 import com.koridor.game.Orientation
@@ -28,6 +30,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     private lateinit var box: Mesh
     private lateinit var cylinder: Mesh
     private lateinit var sphere: Mesh
+    private lateinit var octahedron: Mesh
 
     private val view = FloatArray(16)
     private val proj = FloatArray(16)
@@ -46,7 +49,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         box = Mesh.box()
         cylinder = Mesh.cylinder()
         sphere = Mesh.sphere()
-        GLES20.glClearColor(0.106f, 0.078f, 0.063f, 1f)
+        octahedron = Mesh.octahedron()
         GLES20.glEnable(GLES20.GL_DEPTH_TEST)
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
     }
@@ -57,8 +60,11 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        val s = scene
+        val bg = s?.theme?.background
+        if (bg != null) GLES20.glClearColor(bg.red, bg.green, bg.blue, 1f)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
-        val s = scene ?: return
+        if (s == null) return
 
         camera.viewMatrix(view)
         camera.projectionMatrix(proj, aspect)
@@ -81,7 +87,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
 
     private fun drawBoard(s: BoardScene) {
         // Taban
-        drawBox(0f, -0.2f, 0f, 10.1f, 0.4f, 10.1f, BASE)
+        drawBox(0f, -0.2f, 0f, 10.1f, 0.4f, 10.1f, s.theme.base.rgb())
 
         // Hedef kenarları: her oyuncunun ulaşması gereken kenar onun renginde.
         val state = s.state
@@ -100,13 +106,15 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         val highlighted = HashSet(s.highlights)
         for (y in 0 until Board.SIZE) for (x in 0 until Board.SIZE) {
             val isHi = Cell(x, y) in highlighted
-            val color = if (isHi) mix(TILE, highlightColor, 0.55f) else TILE
+            val tile = s.theme.tileColor(x, y).rgb()
+            val color = if (isHi) mix(tile, highlightColor, 0.55f) else tile
             drawBox(x - 4f, TILE_HEIGHT / 2f, y - 4f, TILE_SIZE, TILE_HEIGHT, TILE_SIZE, color)
         }
     }
 
     private fun drawWalls(s: BoardScene) {
-        for (w in s.state.walls) drawWall(w.x, w.y, w.orientation, WALL)
+        val wallColor = s.theme.wall.rgb()
+        for (w in s.state.walls) drawWall(w.x, w.y, w.orientation, wallColor)
 
         // Kalan duvarlar, oyuncunun kenarında dik olarak dizilir.
         val state = s.state
@@ -114,7 +122,7 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
             val n = state.wallsLeft(p)
             for (i in 0 until n) {
                 val offset = (i - (n - 1) / 2f) * 0.42f
-                val c = mix(WALL, Players.rgb(state.playerCount, p), 0.18f)
+                val c = mix(wallColor, Players.rgb(state.playerCount, p), 0.18f)
                 when (state.sides[p]) {
                     Side.SOUTH -> drawBox(offset, WALL_HEIGHT / 2f, STORE, WALL_THICK, WALL_HEIGHT, WALL_LEN, c)
                     Side.NORTH -> drawBox(offset, WALL_HEIGHT / 2f, -STORE, WALL_THICK, WALL_HEIGHT, WALL_LEN, c)
@@ -161,9 +169,43 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
             val isTurn = p == state.currentPlayer && !state.isOver
             val bob = if (isTurn) (sin(now / 260.0) * 0.04).toFloat() + 0.04f else 0f
 
-            drawCylinder(x, base + 0.06f, z, 0.34f, 0.12f, mix(color, BLACK, 0.25f))
-            drawCylinder(x, base + 0.12f + 0.21f + bob, z, 0.22f, 0.42f, color)
-            drawSphere(x, base + 0.12f + 0.42f + 0.16f + bob, z, 0.21f, color)
+            drawPawn(s.pawnStyle, x, base, z, color, bob, now, p)
+        }
+    }
+
+    private fun drawPawn(style: PawnStyle, x: Float, base: Float, z: Float, color: FloatArray, bob: Float, now: Long, p: Int) {
+        val dark = mix(color, BLACK, 0.3f)
+        val light = mix(color, WHITE, 0.35f)
+        when (style) {
+            PawnStyle.CLASSIC -> {
+                drawCylinder(x, base + 0.06f, z, 0.34f, 0.12f, dark)
+                drawCylinder(x, base + 0.33f + bob, z, 0.22f, 0.42f, color)
+                drawSphere(x, base + 0.70f + bob, z, 0.21f, color)
+            }
+            PawnStyle.CHECKER -> {
+                // İki katlı dama taşı; üstte açık renkli yiv.
+                drawCylinder(x, base + 0.07f, z, 0.38f, 0.14f, dark)
+                drawCylinder(x, base + 0.21f + bob, z, 0.38f, 0.14f, color)
+                drawCylinder(x, base + 0.285f + bob, z, 0.26f, 0.012f, light)
+                drawCylinder(x, base + 0.292f + bob, z, 0.18f, 0.012f, color)
+            }
+            PawnStyle.ROOK -> {
+                drawCylinder(x, base + 0.06f, z, 0.34f, 0.12f, dark)
+                drawCylinder(x, base + 0.36f + bob, z, 0.23f, 0.48f, color)
+                drawCylinder(x, base + 0.64f + bob, z, 0.3f, 0.1f, color)
+                // Mazgallar
+                for ((dx, dz) in listOf(0.17f to 0.17f, -0.17f to 0.17f, 0.17f to -0.17f, -0.17f to -0.17f)) {
+                    drawBox(x + dx, base + 0.75f + bob, z + dz, 0.13f, 0.14f, 0.13f, light)
+                }
+            }
+            PawnStyle.CRYSTAL -> {
+                drawCylinder(x, base + 0.05f, z, 0.3f, 0.1f, dark)
+                drawCylinder(x, base + 0.13f, z, 0.12f, 0.08f, light)
+                // Yavaşça dönen sekiz yüzlü kristal; her oyuncunun kristali farklı açıda başlar.
+                val spin = (now % 6000L) / 6000f * 360f + p * 30f
+                setModel(x, base + 0.55f + bob, z, 0.27f, 0.4f, 0.27f, spin)
+                draw(octahedron, mix(color, WHITE, 0.15f), 1f)
+            }
         }
     }
 
@@ -203,9 +245,10 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         draw(sphere, c, 1f)
     }
 
-    private fun setModel(x: Float, y: Float, z: Float, sx: Float, sy: Float, sz: Float) {
+    private fun setModel(x: Float, y: Float, z: Float, sx: Float, sy: Float, sz: Float, rotY: Float = 0f) {
         Matrix.setIdentityM(model, 0)
         Matrix.translateM(model, 0, x, y, z)
+        if (rotY != 0f) Matrix.rotateM(model, 0, rotY, 0f, 1f, 0f)
         Matrix.scaleM(model, 0, sx, sy, sz)
         Matrix.multiplyMM(mvp, 0, vp, 0, model, 0)
     }
@@ -229,9 +272,6 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         private const val WALL_LEN = 1.84f
         private const val STORE = 5.95f
 
-        private val BASE = floatArrayOf(0.24f, 0.14f, 0.08f)
-        private val TILE = floatArrayOf(0.50f, 0.31f, 0.17f)
-        private val WALL = floatArrayOf(0.93f, 0.82f, 0.60f)
         private val VALID = floatArrayOf(0.30f, 0.95f, 0.45f)
         private val INVALID = floatArrayOf(0.95f, 0.25f, 0.25f)
         private val WHITE = floatArrayOf(1f, 1f, 1f)
