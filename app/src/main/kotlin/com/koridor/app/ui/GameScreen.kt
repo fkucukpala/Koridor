@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +33,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.koridor.app.InputMode
 import com.koridor.app.KoridorViewModel
 import com.koridor.app.Players
@@ -83,6 +87,13 @@ fun GameScreen(vm: KoridorViewModel, afterGame: (() -> Unit) -> Unit = { it() })
             ) {
                 if (vm.use3d) {
                     Board3D(scene, vm.camera, vm::onBoardTap, Modifier.fillMaxSize())
+                    Column(
+                        Modifier.align(Alignment.TopEnd).padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ZoomButton("+", "Yakınlaştır") { vm.camera.zoomSmooth(ZOOM_STEP) }
+                        ZoomButton("−", "Uzaklaştır") { vm.camera.zoomSmooth(1f / ZOOM_STEP) }
+                    }
                     Row(
                         Modifier.align(Alignment.BottomEnd).padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -188,6 +199,20 @@ private fun PlayerBadge(name: String, color: Color, walls: Int, active: Boolean,
             Text(name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             Text("Duvar: $walls", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+private const val ZOOM_STEP = 1.3f
+
+@Composable
+private fun ZoomButton(symbol: String, description: String, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        shape = CircleShape,
+        contentPadding = PaddingValues(0.dp),
+        modifier = Modifier.size(48.dp).semantics { contentDescription = description },
+    ) {
+        Text(symbol, fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
 }
 

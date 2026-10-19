@@ -1,6 +1,7 @@
 package com.koridor.app.gl
 
 import android.opengl.Matrix
+import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.sin
@@ -13,12 +14,37 @@ import kotlin.math.tan
 class OrbitCamera {
     @Volatile var yaw = DEFAULT_YAW
     @Volatile var pitch = DEFAULT_PITCH
-    @Volatile var distance = DEFAULT_DISTANCE
+    @Volatile private var current = DEFAULT_DISTANCE
+
+    /** Düğmeyle yakınlaştırmada kamera bu uzaklığa yumuşakça kayar (bkz. [update]). */
+    @Volatile private var target = DEFAULT_DISTANCE
+
+    /** Kameranın tahta merkezine uzaklığı; doğrudan atama animasyonsuzdur. */
+    var distance: Float
+        get() = current
+        set(value) {
+            current = value
+            target = value
+        }
 
     fun reset() {
         yaw = DEFAULT_YAW
         pitch = DEFAULT_PITCH
         distance = DEFAULT_DISTANCE
+    }
+
+    /** Yakınlaştırma düğmeleri için: [factor] > 1 yaklaştırır, < 1 uzaklaştırır; geçiş animasyonludur. */
+    fun zoomSmooth(factor: Float) {
+        target = (target / factor).coerceIn(MIN_DISTANCE, MAX_DISTANCE)
+    }
+
+    /** Her karede çağrılır; uzaklığı hedefe doğru yaklaştırır. */
+    fun update(dt: Float) {
+        val t = target
+        val c = current
+        if (c == t) return
+        val next = c + (t - c) * (dt * 10f).coerceAtMost(1f)
+        current = if (abs(next - t) < 0.01f) t else next
     }
 
     fun topView() {

@@ -71,6 +71,11 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         if (s == null) return
 
+        val now = SystemClock.uptimeMillis()
+        val dt = if (lastFrame == 0L) 0f else min((now - lastFrame) / 1000f, 0.1f)
+        lastFrame = now
+        camera.update(dt)
+
         camera.viewMatrix(view)
         camera.projectionMatrix(proj, aspect)
         Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
@@ -79,10 +84,6 @@ class BoardRenderer(private val camera: OrbitCamera) : GLSurfaceView.Renderer {
         GLES20.glUseProgram(shader.program)
         GLES20.glUniform3f(shader.uLightDir, 0.35f, 1f, 0.55f)
         GLES20.glUniform3f(shader.uEye, eye[0], eye[1], eye[2])
-
-        val now = SystemClock.uptimeMillis()
-        val dt = if (lastFrame == 0L) 0f else min((now - lastFrame) / 1000f, 0.1f)
-        lastFrame = now
 
         drawBoard(s)
         drawWalls(s, now)

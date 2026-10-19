@@ -54,6 +54,18 @@ class BoardGLView(
         renderer.scene = scene
     }
 
+    /** Emülatörde ya da fareli cihazda tekerlekle yakınlaştırma. */
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_SCROLL) {
+            val scroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL)
+            if (scroll != 0f) {
+                camera.zoomSmooth(if (scroll > 0) 1.15f else 1f / 1.15f)
+                return true
+            }
+        }
+        return super.onGenericMotionEvent(event)
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(event)

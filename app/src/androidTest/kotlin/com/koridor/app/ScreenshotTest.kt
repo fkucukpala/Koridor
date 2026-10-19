@@ -83,6 +83,13 @@ class ScreenshotTest {
         }
         shot("04_dondurulmus_3d")
 
+        // "+" düğmesine iki kez basılmış gibi yakınlaştır.
+        onUi {
+            vm.camera.zoomSmooth(1.3f)
+            vm.camera.zoomSmooth(1.3f)
+        }
+        shot("04b_yakinlastirma_3d")
+
         onUi {
             vm.camera.reset()
             vm.setUse3dForTest(false)
