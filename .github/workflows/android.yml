@@ -18,7 +18,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # Android Studio'nun güncel sürümleri Gradle'ı Java 25 ile çalıştırıyor; aynı koşulda derle.
+          java-version: 25
 
       - uses: gradle/actions/setup-gradle@v4
 
